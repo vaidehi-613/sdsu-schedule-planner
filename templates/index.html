@@ -4,11 +4,137 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SDSU Schedule Builder</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css" />
   <link rel="stylesheet" href="/static/style.css" />
 </head>
-<body>
-  <h1>SDSU Fall 2026 Schedule Builder</h1>
-  <p>Frontend coming soon.</p>
+<body class="light">
+
+  <!-- ── TOPBAR ─────────────────────────────────────────── -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="sdsu-badge">SDSU</div>
+      <span class="app-title">Schedule <span class="accent">Builder</span></span>
+    </div>
+    <div class="topbar-right">
+      <span class="filter-badge" id="badge-major">Computer Science</span>
+      <span class="filter-badge" id="badge-level">Graduate</span>
+      <div class="theme-toggle" onclick="toggleTheme()">
+        <i class="ti ti-sun" id="icon-sun"></i>
+        <div class="toggle-pill">
+          <div class="toggle-thumb"></div>
+        </div>
+        <i class="ti ti-moon" id="icon-moon"></i>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── LAYOUT ─────────────────────────────────────────── -->
+  <div class="layout">
+
+    <!-- ── SIDEBAR ───────────────────────────────────────── -->
+    <aside class="sidebar">
+
+      <!-- Major -->
+      <div class="filter-section">
+        <label class="filter-label" for="major-select">Major</label>
+        <select class="major-select" id="major-select" onchange="onMajorChange(this.value)">
+          <option value="Astronomy">Astronomy</option>
+          <option value="Biology">Biology</option>
+          <option value="Chemistry">Chemistry</option>
+          <option value="Computer Science" selected>Computer Science</option>
+          <option value="Geology">Geology</option>
+          <option value="Math">Math</option>
+          <option value="Physics">Physics</option>
+          <option value="Psychology">Psychology</option>
+        </select>
+      </div>
+
+      <!-- Level -->
+      <div class="filter-section">
+        <span class="filter-label">Student Level</span>
+        <div class="pill-group" id="level-group">
+          <button class="pill" data-value="undergrad" onclick="onLevelChange(this)">Undergrad (300–500)</button>
+          <button class="pill active" data-value="grad" onclick="onLevelChange(this)">Graduate (500–700)</button>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Instruction Mode -->
+      <div class="filter-section">
+        <span class="filter-label">Instruction Mode</span>
+        <div class="pill-group" id="mode-group">
+          <button class="pill active" data-value="inperson" onclick="togglePill(this)">In-person</button>
+          <button class="pill active" data-value="online" onclick="togglePill(this)">Online</button>
+        </div>
+      </div>
+
+      <!-- Days -->
+      <div class="filter-section">
+        <span class="filter-label">Days Available</span>
+        <div class="pill-group" id="days-group">
+          <button class="pill active" data-value="M"  onclick="togglePill(this)">M</button>
+          <button class="pill active" data-value="T"  onclick="togglePill(this)">T</button>
+          <button class="pill active" data-value="W"  onclick="togglePill(this)">W</button>
+          <button class="pill active" data-value="Th" onclick="togglePill(this)">Th</button>
+          <button class="pill active" data-value="F"  onclick="togglePill(this)">F</button>
+        </div>
+      </div>
+
+      <!-- Units -->
+      <div class="filter-section">
+        <span class="filter-label">Units</span>
+        <div class="pill-group" id="units-group">
+          <button class="pill active" data-value="1" onclick="togglePill(this)">1</button>
+          <button class="pill active" data-value="3" onclick="togglePill(this)">3</button>
+          <button class="pill active" data-value="4" onclick="togglePill(this)">4</button>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- My Schedule -->
+      <div class="schedule-box">
+        <div class="schedule-header">
+          <span class="filter-label" style="margin-bottom:0">My Schedule</span>
+          <button class="clear-btn" onclick="clearSchedule()">Clear all</button>
+        </div>
+        <div id="schedule-list">
+          <p class="empty-msg">No courses added yet</p>
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- ── MAIN CONTENT ───────────────────────────────────── -->
+    <main class="content">
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab active" data-tab="courses" onclick="switchTab(this)">Course list</button>
+        <button class="tab" data-tab="grid" onclick="switchTab(this)">Weekly grid</button>
+      </div>
+
+      <!-- Course list panel -->
+      <div class="tab-panel" id="tab-courses">
+        <div class="spinner hidden" id="spinner">
+          <div class="spinner-ring"></div>
+        </div>
+        <div id="course-list"></div>
+        <div class="empty-state hidden" id="no-courses">No courses found</div>
+      </div>
+
+      <!-- Weekly grid panel (placeholder) -->
+      <div class="tab-panel hidden" id="tab-grid">
+        <div class="placeholder">
+          <i class="ti ti-calendar-week" style="font-size:32px;display:block;margin-bottom:10px;"></i>
+          Weekly grid coming in the next phase
+        </div>
+      </div>
+
+    </main>
+  </div>
+
   <script src="/static/app.js"></script>
 </body>
 </html>
