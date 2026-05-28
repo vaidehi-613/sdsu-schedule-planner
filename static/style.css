@@ -579,3 +579,138 @@ body.dark .error-banner {
   color: var(--text2);
   font-size: 14px;
 }
+
+/* ── Weekly Grid ─────────────────────────────────────────── */
+#tab-grid {
+  padding: 0;
+  overflow-x: auto;
+}
+
+.week-grid {
+  min-width: 520px;
+  background: var(--bg2);
+  font-size: 12px;
+}
+
+/* Scarlet header row */
+.grid-header {
+  display: flex;
+  background: var(--sdsu-red);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.time-gutter {
+  width: 60px;
+  flex-shrink: 0;
+  background: var(--sdsu-red);
+}
+
+.day-label {
+  flex: 1;
+  text-align: center;
+  padding: 9px 4px;
+  color: #fff;
+  font-weight: 600;
+  font-size: 12.5px;
+  border-left: 1px solid rgba(255, 255, 255, 0.25);
+  letter-spacing: 0.3px;
+}
+
+/* Body: time gutter + five day columns side by side */
+.grid-body {
+  display: flex;
+  position: relative;
+}
+
+.time-col {
+  width: 60px;
+  flex-shrink: 0;
+  background: var(--bg3);
+  border-right: 1px solid var(--border);
+  position: relative;
+}
+
+.time-label {
+  position: absolute;
+  right: 7px;
+  font-size: 10.5px;
+  color: var(--text2);
+  white-space: nowrap;
+  line-height: 1;
+  padding-top: 3px;
+}
+
+.days-area {
+  flex: 1;
+  display: flex;
+}
+
+.day-col {
+  flex: 1;
+  position: relative;
+  background-color: var(--bg2);
+  border-left: 1px solid var(--border);
+  /* Horizontal hour lines via repeating gradient */
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent calc(60px - 1px),
+    var(--border) calc(60px - 1px),
+    var(--border) 60px
+  );
+}
+
+.day-col:last-child {
+  border-right: 1px solid var(--border);
+}
+
+/* Course blocks (absolutely positioned inside .day-col) */
+.course-block {
+  position: absolute;
+  border-radius: 5px;
+  padding: 4px 6px;
+  overflow: hidden;
+  cursor: default;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+  transition: box-shadow 0.15s, transform 0.1s;
+  z-index: 1;
+}
+
+.course-block:hover {
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.28);
+  transform: scaleX(1.03);
+  z-index: 3;
+}
+
+.block-code {
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.block-time {
+  font-size: 9.5px;
+  color: rgba(255, 255, 255, 0.85);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
+}
+
+/* Empty state when mySchedule is empty */
+.grid-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+  color: var(--text2);
+  font-size: 14px;
+  padding: 48px 20px;
+  text-align: center;
+}

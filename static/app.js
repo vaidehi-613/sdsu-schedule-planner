@@ -5,6 +5,21 @@ const SCHEDULE_COLORS = ['#A6192E', '#C69214', '#1D9E75', '#378ADD', '#7F77DD'];
 const VALID_DAYS = ['M', 'T', 'W', 'Th', 'F'];
 const ALL_DAYS   = [...VALID_DAYS];
 
+// ── Weekly grid constants ─────────────────────────────────
+// Range extended beyond spec (8 AM–9 PM) to cover real SDSU data:
+// earliest start 7:30 AM, latest end 10:45 PM.
+const GRID_START_MIN = 7 * 60;   // 7:00 AM
+const GRID_END_MIN   = 23 * 60;  // 11:00 PM
+const HOUR_PX        = 60;       // px per hour
+
+const GRID_DAYS = [
+  { key: 'M',  label: 'Mon' },
+  { key: 'T',  label: 'Tue' },
+  { key: 'W',  label: 'Wed' },
+  { key: 'Th', label: 'Thu' },
+  { key: 'F',  label: 'Fri' },
+];
+
 // CSV meeting-pattern letter → normalized day label
 // 'R' is Thursday in the SDSU CSV encoding; we normalize to 'Th' for comparison
 const DAY_MAP = { M: 'M', T: 'T', W: 'W', R: 'Th', F: 'F' };
@@ -362,18 +377,21 @@ function addCourse(classNbr) {
   state.mySchedule.push(course);
   renderCourseList();      // re-renders all cards, re-runs conflict detection
   renderSchedulePanel();
+  renderWeeklyGrid();
 }
 
 function removeCourse(classNbr) {
   state.mySchedule = state.mySchedule.filter(c => c.class_nbr !== classNbr);
   renderCourseList();
   renderSchedulePanel();
+  renderWeeklyGrid();
 }
 
 function clearSchedule() {
   state.mySchedule = [];
   renderCourseList();
   renderSchedulePanel();
+  renderWeeklyGrid();
 }
 
 // ── My Schedule sidebar panel ─────────────────────────────
@@ -398,6 +416,121 @@ function renderSchedulePanel() {
         </div>
       </div>`;
   }).join('');
+}
+
+// ── Weekly grid ───────────────────────────────────────────
+function formatHourLabel(totalMinutes) {
+  const h    = Math.floor(totalMinutes / 60);
+  const ampm = h < 12 ? 'AM' : 'PM';
+  const h12  = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${h12} ${ampm}`;
+}
+
+// Greedy lane assignment so overlapping blocks sit side-by-side.
+// Returns { classNbr: { lane, total } }.
+function assignLanes(courses) {
+  const sorted = [...courses].sort(
+    (a, b) => (parseTime(a.start_time) ?? 0) - (parseTime(b.start_time) ?? 0)
+  );
+  const lanes = [];
+
+  for (const course of sorted) {
+    const s = parseTime(course.start_time);
+    const e = parseTime(course.end_time);
+    let placed = false;
+    for (const lane of lanes) {
+      const hasOverlap = lane.some(ex => {
+        const es = parseTime(ex.start_time);
+        const ee = parseTime(ex.end_time);
+        return s < ee && es < e;
+      });
+      if (!hasOverlap) { lane.push(course); placed = true; break; }
+    }
+    if (!placed) lanes.push([course]);
+  }
+
+  const map = {};
+  lanes.forEach((lane, idx) =>
+    lane.forEach(c => { map[c.class_nbr] = { lane: idx, total: lanes.length }; })
+  );
+  return map;
+}
+
+function makeCourseBlock(course, laneIdx, totalLanes) {
+  const start = parseTime(course.start_time);
+  const end   = parseTime(course.end_time);
+  if (start === null || end === null) return '';
+
+  const top    = (start - GRID_START_MIN) / 60 * HOUR_PX;
+  const height = Math.max(20, (end - start) / 60 * HOUR_PX);
+  const color  = state.courseColors[course.class_nbr] || '#888';
+  const wpct   = 100 / totalLanes;
+  const lpct   = laneIdx * wpct;
+
+  const style = `top:${top}px;height:${height}px;` +
+                `left:calc(${lpct}% + 3px);width:calc(${wpct}% - 6px);` +
+                `background:${color}`;
+
+  return `<div class="course-block" style="${style}">` +
+           `<div class="block-code">${course.subject} ${course.catalog_nbr}</div>` +
+           `<div class="block-time">${course.start_time} – ${course.end_time}</div>` +
+         `</div>`;
+}
+
+function renderWeeklyGrid() {
+  const container = document.getElementById('tab-grid');
+
+  if (!state.mySchedule.length) {
+    container.innerHTML =
+      '<div class="grid-empty">Add courses from the course list to see them here</div>';
+    return;
+  }
+
+  // Group timed courses by normalised day key; skip async (no times)
+  const dayMap = { M: [], T: [], W: [], Th: [], F: [] };
+  for (const course of state.mySchedule) {
+    const s = parseTime(course.start_time);
+    const e = parseTime(course.end_time);
+    if (s === null || e === null) continue;
+    for (const day of parseDays(course.days)) {
+      if (day in dayMap) dayMap[day].push(course);
+    }
+  }
+
+  const totalHours = (GRID_END_MIN - GRID_START_MIN) / 60;
+  const gridHeight = totalHours * HOUR_PX;
+
+  // Time labels — one per hour across the full range
+  const timeLabels = Array.from({ length: totalHours }, (_, h) =>
+    `<div class="time-label" style="top:${h * HOUR_PX}px">` +
+    `${formatHourLabel(GRID_START_MIN + h * 60)}</div>`
+  ).join('');
+
+  // Day columns with absolutely-positioned course blocks
+  const dayCols = GRID_DAYS.map(({ key }) => {
+    const courses = dayMap[key];
+    const laneMap = assignLanes(courses);
+    const blocks  = courses.map(c => {
+      const { lane, total } = laneMap[c.class_nbr] ?? { lane: 0, total: 1 };
+      return makeCourseBlock(c, lane, total);
+    }).join('');
+    return `<div class="day-col">${blocks}</div>`;
+  }).join('');
+
+  const header =
+    `<div class="grid-header">` +
+    `<div class="time-gutter"></div>` +
+    GRID_DAYS.map(d => `<div class="day-label">${d.label}</div>`).join('') +
+    `</div>`;
+
+  container.innerHTML =
+    `<div class="week-grid">` +
+      header +
+      `<div class="grid-body" style="height:${gridHeight}px">` +
+        `<div class="time-col">${timeLabels}</div>` +
+        `<div class="days-area">${dayCols}</div>` +
+      `</div>` +
+    `</div>`;
 }
 
 // ── Init ─────────────────────────────────────────────────
