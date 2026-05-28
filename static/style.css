@@ -580,6 +580,55 @@ body.dark .error-banner {
   font-size: 14px;
 }
 
+/* ── Unit enrollment tracker ─────────────────────────────── */
+#unit-tracker {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+body.dark #unit-tracker { background: var(--bg3); }
+
+.tracker-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.tracker-units {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.tracker-bar-track {
+  height: 6px;
+  background: var(--border2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.tracker-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  min-width: 0;
+  transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.tracker-note {
+  font-size: 10px;
+  color: var(--text2);
+  line-height: 1.4;
+  margin: 0;
+}
+
 /* ── Weekly Grid ─────────────────────────────────────────── */
 #tab-grid {
   padding: 0;

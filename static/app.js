@@ -2,6 +2,34 @@
 // Colors assigned to added courses in the sidebar panel (cycles if > 5)
 const SCHEDULE_COLORS = ['#A6192E', '#C69214', '#1D9E75', '#378ADD', '#7F77DD'];
 
+const UNIT_REQUIREMENTS = {
+  "International Undergraduate (F-1/J-1)": {
+    fulltime: 12,
+    halftime: null,
+    note: "12 units strictly required to maintain legal F-1/J-1 visa status",
+  },
+  "Domestic Undergraduate": {
+    fulltime: 12,
+    halftime: 6,
+    note: "6 units minimum for half-time · 12 units minimum for full financial aid",
+  },
+  "International Graduate - Master's (F-1/J-1)": {
+    fulltime: 9,
+    halftime: null,
+    note: "9 units minimum for Master's degree",
+  },
+  "International Graduate - Doctoral (F-1/J-1)": {
+    fulltime: 6,
+    halftime: null,
+    note: "6 units minimum for Doctoral degree",
+  },
+  "Domestic Graduate": {
+    fulltime: 9,
+    halftime: 5,
+    note: "5 units minimum for half-time · 9 units minimum for full financial aid",
+  },
+};
+
 const VALID_DAYS = ['M', 'T', 'W', 'Th', 'F'];
 const ALL_DAYS   = [...VALID_DAYS];
 
@@ -33,10 +61,11 @@ const state = {
   days:   [...ALL_DAYS],
   units:  null,
   // Data
-  courses:      [],
-  mySchedule:   [],       // courses the student has added
-  courseColors: {},       // classNbr → hex color string
-  colorIdx:     0,
+  courses:          [],
+  mySchedule:       [],       // courses the student has added
+  courseColors:     {},       // classNbr → hex color string
+  colorIdx:         0,
+  studentCategory:  'International Undergraduate (F-1/J-1)',
 };
 
 let hasLoaded    = false;
@@ -68,6 +97,11 @@ function onLevelChange(btn) {
   document.getElementById('badge-level').textContent =
     state.level === 'grad' ? 'Graduate' : 'Undergrad';
   scheduleApiFetch();
+}
+
+function onCategoryChange(value) {
+  state.studentCategory = value;
+  renderUnitTracker();
 }
 
 function togglePill(btn) {
@@ -377,6 +411,7 @@ function addCourse(classNbr) {
   state.mySchedule.push(course);
   renderCourseList();      // re-renders all cards, re-runs conflict detection
   renderSchedulePanel();
+  renderUnitTracker();
   renderWeeklyGrid();
 }
 
@@ -384,6 +419,7 @@ function removeCourse(classNbr) {
   state.mySchedule = state.mySchedule.filter(c => c.class_nbr !== classNbr);
   renderCourseList();
   renderSchedulePanel();
+  renderUnitTracker();
   renderWeeklyGrid();
 }
 
@@ -391,6 +427,7 @@ function clearSchedule() {
   state.mySchedule = [];
   renderCourseList();
   renderSchedulePanel();
+  renderUnitTracker();
   renderWeeklyGrid();
 }
 
@@ -416,6 +453,47 @@ function renderSchedulePanel() {
         </div>
       </div>`;
   }).join('');
+}
+
+// ── Unit enrollment tracker ───────────────────────────────
+function renderUnitTracker() {
+  const el  = document.getElementById('unit-tracker');
+  if (!el) return;
+
+  const req        = UNIT_REQUIREMENTS[state.studentCategory];
+  const totalUnits = state.mySchedule.reduce((sum, c) => sum + (c.units || 0), 0);
+
+  // Determine status, badge class, and bar fill color
+  let status, badgeCls, barColor;
+  if (req.halftime !== null) {
+    if (totalUnits < req.halftime) {
+      status = 'Below minimum'; badgeCls = 'red';   barColor = '#E24B4A';
+    } else if (totalUnits < req.fulltime) {
+      status = 'Half-time';     badgeCls = 'gold';  barColor = '#C69214';
+    } else {
+      status = 'Full-time ✓';   badgeCls = 'green'; barColor = '#A6192E';
+    }
+  } else {
+    if (totalUnits < req.fulltime) {
+      status = 'Below minimum'; badgeCls = 'red';   barColor = '#E24B4A';
+    } else {
+      status = 'Full-time ✓';   badgeCls = 'green'; barColor = '#A6192E';
+    }
+  }
+
+  const pct = Math.min(100, (totalUnits / req.fulltime) * 100);
+  // Display units without trailing ".0" (3.0 → "3", 1.5 → "1.5")
+  const unitDisplay = totalUnits % 1 === 0 ? String(totalUnits) : totalUnits.toFixed(1);
+
+  el.innerHTML =
+    `<div class="tracker-row">` +
+      `<span class="tracker-units">${unitDisplay} / ${req.fulltime} units</span>` +
+      `<span class="avail-badge ${badgeCls}">${status}</span>` +
+    `</div>` +
+    `<div class="tracker-bar-track">` +
+      `<div class="tracker-bar-fill" style="width:${pct}%;background:${barColor}"></div>` +
+    `</div>` +
+    `<p class="tracker-note">${req.note}</p>`;
 }
 
 // ── Weekly grid ───────────────────────────────────────────
@@ -537,4 +615,5 @@ function renderWeeklyGrid() {
 document.addEventListener('DOMContentLoaded', () => {
   restoreFromURL();
   fetchCourses();
+  renderUnitTracker();
 });

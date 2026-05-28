@@ -91,6 +91,18 @@
         </div>
       </div>
 
+      <!-- Student Category -->
+      <div class="filter-section">
+        <label class="filter-label" for="category-select">Student Category</label>
+        <select class="major-select" id="category-select" onchange="onCategoryChange(this.value)">
+          <option value="International Undergraduate (F-1/J-1)" selected>International Undergraduate (F-1/J-1)</option>
+          <option value="Domestic Undergraduate">Domestic Undergraduate</option>
+          <option value="International Graduate - Master&#39;s (F-1/J-1)">International Graduate - Master&#39;s (F-1/J-1)</option>
+          <option value="International Graduate - Doctoral (F-1/J-1)">International Graduate - Doctoral (F-1/J-1)</option>
+          <option value="Domestic Graduate">Domestic Graduate</option>
+        </select>
+      </div>
+
       <div class="divider"></div>
 
       <!-- My Schedule -->
@@ -102,6 +114,7 @@
         <div id="schedule-list">
           <p class="empty-msg">No courses added yet</p>
         </div>
+        <div id="unit-tracker"></div>
       </div>
 
     </aside>
