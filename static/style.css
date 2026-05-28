@@ -542,6 +542,29 @@ body.dark .toggle-thumb { transform: translateX(18px); }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ── Loading / error states ─────────────────────────────── */
+#course-list.loading {
+  opacity: 0.5;
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+
+.error-banner {
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  color: #991B1B;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-bottom: 14px;
+}
+
+body.dark .error-banner {
+  background: #2A0A0A;
+  border-color: #5C1515;
+  color: #FCA5A5;
+}
+
 /* ── Empty / placeholder ────────────────────────────────── */
 .empty-state {
   text-align: center;
