@@ -8,10 +8,10 @@ A web app for **San Diego State University** students to browse the Fall 2026 cl
 
 ## Screenshots
 
-### Course List — Light Mode
+### Course List 
 ![Course list view with conflict detection](assets/ss1.png)
 
-### Weekly Grid — Dark Mode
+### Weekly Grid 
 ![Weekly grid showing added courses as colored time blocks](assets/ss2.png)
 
 ---
