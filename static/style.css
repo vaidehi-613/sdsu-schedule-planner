@@ -376,7 +376,7 @@ body.dark .toggle-thumb { transform: translateX(18px); }
 }
 
 .course-card.conflict {
-  opacity: 0.42;
+  opacity: 0.4;
   border-color: var(--border2);
 }
 

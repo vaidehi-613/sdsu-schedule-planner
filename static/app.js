@@ -1,35 +1,33 @@
 // ── Constants ────────────────────────────────────────────
-const SCHEDULE_COLORS = [
-  '#4A90D9', '#E8892B', '#27AE60', '#9B59B6',
-  '#16A085', '#D35400', '#2980B9', '#C0392B',
-  '#8E44AD', '#1ABC9C',
-];
+// Colors assigned to added courses in the sidebar panel (cycles if > 5)
+const SCHEDULE_COLORS = ['#A6192E', '#C69214', '#1D9E75', '#378ADD', '#7F77DD'];
 
-const VALID_DAYS  = ['M', 'T', 'W', 'Th', 'F'];
-const ALL_DAYS    = [...VALID_DAYS];
+const VALID_DAYS = ['M', 'T', 'W', 'Th', 'F'];
+const ALL_DAYS   = [...VALID_DAYS];
+
+// CSV meeting-pattern letter → normalized day label
+// 'R' is Thursday in the SDSU CSV encoding; we normalize to 'Th' for comparison
+const DAY_MAP = { M: 'M', T: 'T', W: 'W', R: 'Th', F: 'F' };
 
 // ── Application state ────────────────────────────────────
 const state = {
-  // Filters (mirrors sidebar UI)
+  // Filters
   major:  'Computer Science',
   level:  'grad',
   mode:   'all',
-  days:   [...ALL_DAYS],  // all 5 active = no filter sent to API
-  units:  null,           // null = no filter sent to API
-  // App data
+  days:   [...ALL_DAYS],
+  units:  null,
+  // Data
   courses:      [],
-  schedule:     [],
-  courseColors: {},
+  mySchedule:   [],       // courses the student has added
+  courseColors: {},       // classNbr → hex color string
   colorIdx:     0,
 };
 
-// Tracks whether the very first fetch has completed
-let hasLoaded = false;
-
-// Debounce handle for filter-triggered fetches
+let hasLoaded    = false;
 let debounceTimer = null;
 
-// ── Debounced fetch trigger ──────────────────────────────
+// ── Debounced fetch ───────────────────────────────────────
 function scheduleApiFetch() {
   clearTimeout(debounceTimer);
   debounceTimer = setTimeout(fetchCourses, 300);
@@ -62,7 +60,6 @@ function togglePill(btn) {
   const groupId = group.id;
 
   if (groupId === 'units-group') {
-    // Radio: click active → deactivate (no filter); click inactive → activate only this one
     if (btn.classList.contains('active')) {
       btn.classList.remove('active');
       state.units = null;
@@ -72,13 +69,11 @@ function togglePill(btn) {
       state.units = parseFloat(btn.dataset.value);
     }
   } else {
-    // Multi-select toggle for mode and days groups
     btn.classList.toggle('active');
   }
 
   if (groupId === 'mode-group') {
     const active = [...group.querySelectorAll('.pill.active')].map(p => p.dataset.value);
-    // Both active, neither active → all; exactly one → that mode
     state.mode = active.length === 1 ? active[0] : 'all';
   } else if (groupId === 'days-group') {
     state.days = [...group.querySelectorAll('.pill.active')].map(p => p.dataset.value);
@@ -87,19 +82,15 @@ function togglePill(btn) {
   scheduleApiFetch();
 }
 
-// ── Build query string from current state ─────────────────
+// ── Build query string ────────────────────────────────────
 function buildParams() {
   const p = new URLSearchParams({ major: state.major, level: state.level });
-  if (state.mode !== 'all') {
+  if (state.mode !== 'all')
     p.set('mode', state.mode);
-  }
-  // Only send days if a subset is selected (0 or 5 = no filter)
-  if (state.days.length > 0 && state.days.length < 5) {
+  if (state.days.length > 0 && state.days.length < 5)
     p.set('days', state.days.join(','));
-  }
-  if (state.units !== null) {
+  if (state.units !== null)
     p.set('units', String(state.units));
-  }
   return p;
 }
 
@@ -108,10 +99,9 @@ function syncURL() {
   history.replaceState(null, '', '?' + buildParams().toString());
 }
 
-// ── Restore filters from URL on page load ────────────────
 function restoreFromURL() {
   const p = new URLSearchParams(window.location.search);
-  if (!p.toString()) return; // nothing to restore
+  if (!p.toString()) return;
 
   if (p.has('major')) {
     const val    = p.get('major');
@@ -140,8 +130,7 @@ function restoreFromURL() {
     if (['all', 'inperson', 'online'].includes(val)) {
       state.mode = val;
       document.querySelectorAll('#mode-group .pill').forEach(btn => {
-        btn.classList.toggle('active',
-          val === 'all' || btn.dataset.value === val);
+        btn.classList.toggle('active', val === 'all' || btn.dataset.value === val);
       });
     }
   }
@@ -167,7 +156,7 @@ function restoreFromURL() {
   }
 }
 
-// ── Tab switching ────────────────────────────────────────
+// ── Tabs ─────────────────────────────────────────────────
 function switchTab(btn) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
@@ -175,7 +164,7 @@ function switchTab(btn) {
   document.getElementById('tab-' + btn.dataset.tab).classList.remove('hidden');
 }
 
-// ── Error banner (created lazily, lives above the list) ───
+// ── Error banner ──────────────────────────────────────────
 function showError(msg) {
   let banner = document.getElementById('error-banner');
   if (!banner) {
@@ -194,7 +183,7 @@ function hideError() {
   if (banner) banner.classList.add('hidden');
 }
 
-// ── API fetch ────────────────────────────────────────────
+// ── API fetch ─────────────────────────────────────────────
 async function fetchCourses() {
   const spinner = document.getElementById('spinner');
   const listEl  = document.getElementById('course-list');
@@ -203,12 +192,10 @@ async function fetchCourses() {
   hideError();
 
   if (!hasLoaded) {
-    // Initial load: show full-panel spinner, clear any stale markup
     spinner.classList.remove('hidden');
     listEl.innerHTML = '';
     noMsg.classList.add('hidden');
   } else {
-    // Subsequent fetches: dim the existing list — subtle, non-disruptive
     listEl.classList.add('loading');
   }
 
@@ -233,12 +220,52 @@ async function fetchCourses() {
   syncURL();
 }
 
-// ── Time / conflict helpers ──────────────────────────────
+// ── Day parsing ───────────────────────────────────────────
+// Parses a CSV meeting pattern string into an array of normalized day labels.
+// 'R' in the CSV means Thursday; we normalize it to 'Th' so overlaps are
+// correctly detected and so 'ARR' (arranged) never accidentally matches Thursday.
+function parseDays(pattern) {
+  if (!pattern || pattern === 'ARR') return [];
+  const days = [];
+  for (const ch of pattern) {
+    if (ch in DAY_MAP) days.push(DAY_MAP[ch]);
+  }
+  return days;
+}
+
+// ── Conflict detection ────────────────────────────────────
+function daysOverlap(patA, patB) {
+  const a = parseDays(patA);
+  const b = parseDays(patB);
+  if (!a.length || !b.length) return false;
+  return a.some(d => b.includes(d));
+}
+
+// Returns the first course in mySchedule that conflicts with `course`,
+// or null if none. A conflict requires overlapping days AND overlapping times.
+// Courses with no meeting time (async) can never conflict.
+function getConflict(course) {
+  const s1 = parseTime(course.start_time);
+  const e1 = parseTime(course.end_time);
+  if (s1 === null || e1 === null) return null; // async — no conflict possible
+
+  for (const added of state.mySchedule) {
+    if (added.class_nbr === course.class_nbr) continue;
+    if (!daysOverlap(course.days, added.days)) continue;
+    const s2 = parseTime(added.start_time);
+    const e2 = parseTime(added.end_time);
+    if (s2 === null || e2 === null) continue; // added course is async
+    if (s1 < e2 && s2 < e1) return added;
+  }
+  return null;
+}
+
+// ── Time helpers ──────────────────────────────────────────
 function parseTime(s) {
   if (!s) return null;
   const m = s.match(/^(\d+):(\d+)\s*(AM|PM)$/i);
   if (!m) return null;
-  let h = +m[1];
+  let h     = +m[1];
   const min = +m[2];
   const pm  = m[3].toUpperCase() === 'PM';
   if (pm  && h !== 12) h += 12;
@@ -246,36 +273,13 @@ function parseTime(s) {
   return h * 60 + min;
 }
 
-function daysOverlap(a, b) {
-  if (!a || !b || a === 'ARR' || b === 'ARR') return false;
-  for (const ch of ['M', 'T', 'W', 'R', 'F']) {
-    if (a.includes(ch) && b.includes(ch)) return true;
-  }
-  return false;
-}
-
-function getConflict(course) {
-  const s1 = parseTime(course.start_time);
-  const e1 = parseTime(course.end_time);
-  for (const added of state.schedule) {
-    if (added.class_nbr === course.class_nbr) continue;
-    if (!daysOverlap(course.days, added.days)) continue;
-    const s2 = parseTime(added.start_time);
-    const e2 = parseTime(added.end_time);
-    if (s1 !== null && e1 !== null && s2 !== null && e2 !== null) {
-      if (s1 < e2 && s2 < e1) return added;
-    }
-  }
-  return null;
-}
-
-// ── Card helpers ─────────────────────────────────────────
 function fmtTime(course) {
   if (course.start_time && course.end_time)
     return `${course.start_time} – ${course.end_time}`;
   return 'Async';
 }
 
+// ── Card helpers ──────────────────────────────────────────
 function availBadge(seats) {
   if (seats <= 0)  return ['red',   '0 seats — Full'];
   if (seats <= 10) return ['gold',  `${seats} seat${seats === 1 ? '' : 's'} left`];
@@ -283,27 +287,27 @@ function availBadge(seats) {
 }
 
 function makeCard(course) {
-  const isAdded  = state.schedule.some(c => c.class_nbr === course.class_nbr);
+  const isAdded  = state.mySchedule.some(c => c.class_nbr === course.class_nbr);
   const conflict = !isAdded ? getConflict(course) : null;
 
-  const isOnline  = ['ON', 'OE'].includes(course.mode) || course.room === 'ONLINE';
-  const roomIcon  = isOnline ? 'ti-wifi' : 'ti-building';
-  const roomText  = isOnline ? 'Online' : (course.room || 'TBA');
-  const dayPrefix = course.days && course.days !== 'ARR' ? course.days + ' · ' : '';
+  const isOnline   = ['ON', 'OE'].includes(course.mode) || course.room === 'ONLINE';
+  const roomIcon   = isOnline ? 'ti-wifi' : 'ti-building';
+  const roomText   = isOnline ? 'Online' : (course.room || 'TBA');
+  const dayPrefix  = course.days && course.days !== 'ARR' ? course.days + ' · ' : '';
   const instructor = course.instructor || 'TBA';
 
   const [avCls, avTxt] = availBadge(course.seats_available);
 
-  let btn = '';
+  let btn   = '';
   let extra = '';
 
   if (isAdded) {
-    btn = `<button class="add-btn added" onclick="removeCourse(${course.class_nbr})">Added ✓</button>`;
+    btn = `<button class="add-btn added" onclick="removeCourse(${course.class_nbr})">✓ Added</button>`;
   } else if (conflict) {
-    extra = `<span class="conflict-chip">⚠ Conflicts with ${conflict.subject} ${conflict.catalog_nbr}</span>`;
+    extra = `<span class="conflict-chip">⚠ Conflicts with ${conflict.title}</span>`;
     btn   = `<button class="add-btn" disabled>Conflict</button>`;
   } else {
-    btn = `<button class="add-btn" onclick="addCourse(${course.class_nbr})">Add</button>`;
+    btn = `<button class="add-btn" onclick="addCourse(${course.class_nbr})">+ Add</button>`;
   }
 
   const cardCls = ['course-card', isAdded && 'added', conflict && 'conflict']
@@ -344,42 +348,44 @@ function renderCourseList() {
   listEl.innerHTML = state.courses.map(makeCard).join('');
 }
 
-// ── Schedule management ──────────────────────────────────
+// ── Schedule management ───────────────────────────────────
 function addCourse(classNbr) {
-  if (state.schedule.some(c => c.class_nbr === classNbr)) return;
+  if (state.mySchedule.some(c => c.class_nbr === classNbr)) return;
   const course = state.courses.find(c => c.class_nbr === classNbr);
   if (!course) return;
 
+  // Assign a persistent color the first time this course is added
   if (!state.courseColors[classNbr]) {
     state.courseColors[classNbr] = SCHEDULE_COLORS[state.colorIdx++ % SCHEDULE_COLORS.length];
   }
 
-  state.schedule.push(course);
-  renderCourseList();
+  state.mySchedule.push(course);
+  renderCourseList();      // re-renders all cards, re-runs conflict detection
   renderSchedulePanel();
 }
 
 function removeCourse(classNbr) {
-  state.schedule = state.schedule.filter(c => c.class_nbr !== classNbr);
+  state.mySchedule = state.mySchedule.filter(c => c.class_nbr !== classNbr);
   renderCourseList();
   renderSchedulePanel();
 }
 
 function clearSchedule() {
-  state.schedule = [];
+  state.mySchedule = [];
   renderCourseList();
   renderSchedulePanel();
 }
 
+// ── My Schedule sidebar panel ─────────────────────────────
 function renderSchedulePanel() {
   const el = document.getElementById('schedule-list');
 
-  if (!state.schedule.length) {
+  if (!state.mySchedule.length) {
     el.innerHTML = '<p class="empty-msg">No courses added yet</p>';
     return;
   }
 
-  el.innerHTML = state.schedule.map(course => {
+  el.innerHTML = state.mySchedule.map(course => {
     const color    = state.courseColors[course.class_nbr] || '#888';
     const dayPfx   = course.days && course.days !== 'ARR' ? course.days + ' · ' : '';
     const timeText = fmtTime(course);
