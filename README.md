@@ -1,4 +1,4 @@
-# 🔴 SDSU Schedule Builder
+# SDSU Schedule Builder
 
 > Vibe coded this entire project with Claude — every line of backend, frontend, conflict detection, weekly grid, and enrollment tracker was built through AI-assisted development, phase by phase, prompt by prompt.
 
